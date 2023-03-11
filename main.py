@@ -16,18 +16,18 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 ### Default parameters
 # Class name what you want to play automatically
-class_name = user.get_class_name()
-start_lecture_name = ''
+class_name = user.class_name
+start_lecture_name = user.start_class_name
 
 # URLs set proceding
 # If program is not working, check these.
-login_url = 'https://sso.jnu.ac.kr/Idp/Login.aspx'
-eclass_url = 'https://sel.jnu.ac.kr/Rathon/Php/lms_sso.php'
-viewer_url = 'https://sel.jnu.ac.kr/mod/vod/viewer.php?id='
+LOGIN_URL = 'https://sso.jnu.ac.kr/Idp/Login.aspx'
+ECLASS_URL = 'https://sel.jnu.ac.kr/Rathon/Php/lms_sso.php'
+VIEWER_URL = 'https://sel.jnu.ac.kr/mod/vod/viewer.php?id='
 
 # X-path of Elements for click
-login_x_path = '/html/body/main/form/section/div[1]/div/div[1]/div[5]/button'
-video_x_path = '/html/body/div[3]/div/div[2]/div/video'
+LOGIN_X_PATH = '/html/body/main/form/section/div[1]/div/div[1]/div[5]/button'
+PLAY_BUTTON_CLASS = 'video-js'
 
 ### Functions
 def set_chrome_driver():
@@ -50,15 +50,15 @@ def get_crawl(URL):
 
 ### Login with infomation in user.py
 driver = set_chrome_driver()
-user_info = user.get_login_info()
+user_info = user.login_info
 driver.implicitly_wait(3)
-driver.get(login_url)
+driver.get(LOGIN_URL)
 driver.find_element(By.NAME, 'UserID').send_keys(user_info['id'])
 driver.find_element(By.NAME, 'UserPWD').send_keys(user_info['pw'])
-driver.find_element(By.XPATH, login_x_path).click()
+driver.find_element(By.XPATH, LOGIN_X_PATH).click()
 
 ### Enter the e-class homepage
-driver.get(eclass_url)
+driver.get(ECLASS_URL)
 
 ### Enter the class what you want
 class_url = ''
@@ -111,13 +111,11 @@ for tag in tags:
         'during': lecture_seconds
     })
 
-print(lectures)
-
 # Play video
 for lecture in lectures:
     print('Play the \'%s\'.' % lecture['name'])
 
-    link = viewer_url + lecture['id']
+    link = VIEWER_URL + lecture['id']
     driver.execute_script(f'window.open("{link}");')
     driver.implicitly_wait(3)
 
@@ -130,10 +128,13 @@ for lecture in lectures:
     except:
         print('no alert')
 
-    play_button = driver.find_element(By.CLASS_NAME, 'video-js')
+    play_button = driver.find_element(By.CLASS_NAME, PLAY_BUTTON_CLASS)
     play_button.click()
 
     time.sleep(lecture['during'])
     driver.close()
     driver.switch_to.window(driver.window_handles[0])
     time.sleep(1)
+
+print('Completed auto play.')
+driver.quit()
