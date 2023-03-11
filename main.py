@@ -11,6 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from pypreprocessor import pypreprocessor
 
+### Preprocessing for test
 IS_TEST = True
 #if IS_TEST
 import test
@@ -23,7 +24,7 @@ if IS_TEST:
 else:
     user_info = user.login_info
 class_name = user.class_name
-start_lecture_name = user.start_class_name
+start_lecture_name = user.start_lecture_name
 
 # URLs set proceding
 # If program is not working, check these.
@@ -117,7 +118,17 @@ for tag in tags:
     })
 
 # Play video
+is_started = False
+if start_lecture_name == '' or start_lecture_name == 'lecture_name':
+    is_started = True
+
 for lecture in lectures:
+    if not is_started:
+        if start_lecture_name not in lecture['name']:
+            continue
+        else:
+            is_started = True
+    
     print('Play the \'%s\'.' % lecture['name'])
 
     link = VIEWER_URL + lecture['id']
