@@ -12,7 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from pypreprocessor import pypreprocessor
 
 ### Preprocessing for test
-IS_TEST = True
+IS_TEST = False
 #if IS_TEST
 import test
 #endif
@@ -119,7 +119,7 @@ for tag in tags:
 
 # Play video
 is_started = False
-if start_lecture_name == '' or start_lecture_name == 'lecture_name':
+if start_lecture_name in ' ' or start_lecture_name == 'lecture_name':
     is_started = True
 
 for lecture in lectures:
