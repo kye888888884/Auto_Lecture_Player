@@ -16,7 +16,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 ### Default parameters
 # Class name what you want to play automatically
-class_name = '데이터통신'
+class_name = user.get_class_name()
 start_lecture_name = ''
 
 # URLs set proceding
