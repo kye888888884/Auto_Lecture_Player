@@ -9,9 +9,19 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from pypreprocessor import pypreprocessor
+
+IS_TEST = True
+#if IS_TEST
+import test
+#endif
 
 ### Default parameters
 # Class name what you want to play automatically
+if IS_TEST:
+    user_info = test.login_info
+else:
+    user_info = user.login_info
 class_name = user.class_name
 start_lecture_name = user.start_class_name
 
@@ -46,7 +56,6 @@ def get_crawl(URL):
 
 ### Login with infomation in user.py
 driver = set_chrome_driver()
-user_info = user.login_info
 driver.implicitly_wait(3)
 driver.get(LOGIN_URL)
 driver.find_element(By.NAME, 'UserID').send_keys(user_info['id'])
