@@ -1,4 +1,3 @@
-import user
 import time
 import re
 from bs4 import BeautifulSoup as bs
@@ -8,148 +7,115 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.webdriver import WebDriver
 from webdriver_manager.chrome import ChromeDriverManager
-from pypreprocessor import pypreprocessor
 
-### Preprocessing for test
-IS_TEST = True
-#if IS_TEST
-import test
-#endif
-
-### Default parameters
-# Class name what you want to play automatically
-if IS_TEST:
-    user_info = test.login_info
-else:
-    user_info = user.login_info
-class_name = user.class_name
-start_lecture_name = user.start_lecture_name
-
-# URLs set proceding
-# If program is not working, check these.
-LOGIN_URL = 'https://sso.jnu.ac.kr/Idp/Login.aspx'
-ECLASS_URL = 'https://sel.jnu.ac.kr/Rathon/Php/lms_sso.php'
-VIEWER_URL = 'https://sel.jnu.ac.kr/mod/vod/viewer.php?id='
-
-# X-path of Elements for click
-LOGIN_X_PATH = '/html/body/main/form/section/div[1]/div/div[1]/div[5]/button'
-PLAY_BUTTON_CLASS = 'video-js'
-
-### Functions
-def set_chrome_driver():
+def set_chrome_driver() -> WebDriver:
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     return driver
 
-def remove_html_tags(data):
-    p = re.compile(r'<.*?>')
-    return p.sub(' ', str(data))
+class ALP:
 
-def get_crawl(URL):
-    response = driver.get(URL)
-    html = driver.page_source
-    soup7 = bs(html, 'html.parser')
-    divs = soup7.findAll('div')
-    # crawl_data = remove_html_tags(divs)
-    return divs
+    def __init__(self) -> None:
+        self.driver: WebDriver = set_chrome_driver()
 
-### Login with infomation in user.py
-driver = set_chrome_driver()
-driver.implicitly_wait(3)
-driver.get(LOGIN_URL)
-driver.find_element(By.NAME, 'UserID').send_keys(user_info['id'])
-driver.find_element(By.NAME, 'UserPWD').send_keys(user_info['pw'])
-driver.find_element(By.XPATH, LOGIN_X_PATH).click()
+    def cnu_login(self, login_url:str, login_xpath:str, user_info:dict) -> None:
+        self.driver.implicitly_wait(3)
+        self.driver.get(login_url)
+        self.driver.find_element(By.NAME, 'UserID').send_keys(user_info['id'])
+        self.driver.find_element(By.NAME, 'UserPWD').send_keys(user_info['pw'])
+        self.driver.find_element(By.XPATH, login_xpath).click()
 
-### Enter the e-class homepage
-driver.get(ECLASS_URL)
+    def get(self, url) -> None:
+        self.driver.get(url)
 
-### Enter the class what you want
-class_url = ''
-driver.execute_script("document.querySelectorAll('.new').forEach((e) => e.remove())")
-html = driver.page_source
-soup7 = bs(html, 'html.parser')
-tags = soup7.findAll('a', class_='course_link')
-for tag in tags:
-    tag_class = tag.find(class_='course-title')
-    tag_class_name = tag.find(class_='course-title').string
-    if tag_class_name == None:
-        continue
-    if class_name in tag_class_name:
-        class_url = tag['href']
-driver.get(class_url)
+    def get_classes(self, main_class:str=None) -> list[dict]:
+        classes = []
+        self.driver.execute_script("document.querySelectorAll('.new').forEach((e) => e.remove())")
+        html = self.driver.page_source
+        soup7 = bs(html, 'html.parser')
+        tags = soup7.findAll('a', class_='course_link')
+        for tag in tags:
+            tag_class_name = tag.find(class_='course-title').string
+            if tag_class_name == None:
+                continue
+            dict_class = {
+                'class_name': tag_class_name,
+                'class_url' : tag['href']
+            }
+            if main_class != None and main_class in tag_class_name:
+                return [dict_class]
+            classes.append(dict_class)
+        return classes
 
-### Get lectures
-driver.execute_script("document.querySelector('.course_box_current').remove()")
-lectures = []
-html = driver.page_source
-soup7 = bs(html, 'html.parser')
-tags = soup7.findAll('div', class_='activityinstance')
-tag: bs_element.Tag
-for tag in tags:
-    tag_displayoptions = tag.find(class_='displayoptions')
-    if tag_displayoptions == None:
-        continue
+    def get_lectures(self) -> list[dict]:
+        self.driver.execute_script("document.querySelector('.course_box_current').remove()")
+        lectures = []
+        html = self.driver.page_source
+        soup7 = bs(html, 'html.parser')
+        tags = soup7.findAll('div', class_='activityinstance')
+        tag: bs_element.Tag
+        for tag in tags:
+            tag_displayoptions = tag.find(class_='displayoptions')
+            if tag_displayoptions == None:
+                continue
 
-    tag_instancename: bs_element.Tag = tag.find(class_='instancename')
-    lecture_name = tag_instancename.contents[0]
-    lecture_url = tag.find('a')
-    if lecture_url == None:
-        continue
-    
-    p = re.compile('[0-9]{5,7}')
-    lecture_id = p.findall(lecture_url['href'])[0]
+            tag_instancename: bs_element.Tag = tag.find(class_='instancename')
+            lecture_name = tag_instancename.contents[0]
+            lecture_url = tag.find('a')
+            if lecture_url == None:
+                continue
+            
+            p = re.compile('[0-9]{5,7}')
+            lecture_id = p.findall(lecture_url['href'])[0]
 
-    p = re.compile('[0-9]{2}:[0-9]{2}')
-    lecture_during_text = tag.find(class_='text-info').string
-    lecture_during = p.findall(lecture_during_text)[0]
-    
-    lecture_minute = int(lecture_during[:2])
-    lecture_second = int(lecture_during[3:])
-    lecture_seconds = lecture_minute * 60 + lecture_second
+            p = re.compile('[0-9]{2}:[0-9]{2}')
+            lecture_during_text = tag.find(class_='text-info').string
+            lecture_during = p.findall(lecture_during_text)[0]
+            
+            lecture_minute = int(lecture_during[:2])
+            lecture_second = int(lecture_during[3:])
+            lecture_seconds = lecture_minute * 60 + lecture_second
 
-    lectures.append({
-        'name': lecture_name,
-        'id': lecture_id,
-        'during': lecture_seconds
-    })
+            lectures.append({
+                'name': lecture_name,
+                'id': lecture_id,
+                'during': lecture_seconds
+            })
+        return lectures
 
-# Play video
-is_started = False
-if start_lecture_name in ' ' or start_lecture_name == 'lecture_name':
-    is_started = True
+    def play(self, lectures, start_lecture_name, viewer_url, play_button_class, is_started=False):
+        for lecture in lectures:
+            if not is_started:
+                if start_lecture_name not in lecture['name']:
+                    continue
+                else:
+                    is_started = True
+            
+            print('Play the \'%s\'.' % lecture['name'])
 
-for lecture in lectures:
-    if not is_started:
-        if start_lecture_name not in lecture['name']:
-            continue
-        else:
-            is_started = True
-    
-    print('Play the \'%s\'.' % lecture['name'])
+            link = viewer_url + lecture['id']
+            self.driver.execute_script(f'window.open("{link}");')
+            self.driver.implicitly_wait(3)
 
-    link = VIEWER_URL + lecture['id']
-    driver.execute_script(f'window.open("{link}");')
-    driver.implicitly_wait(3)
+            self.driver.switch_to.window(self.driver.window_handles[-1])
 
-    driver.switch_to.window(driver.window_handles[-1])
+            try:
+                WebDriverWait(self.driver, 1).until(EC.alert_is_present())
+                alert = self.driver.switch_to.alert
+                alert.accept()
+            except:
+                print('no alert')
 
-    try:
-        WebDriverWait(driver, 1).until(EC.alert_is_present())
-        alert = driver.switch_to.alert
-        alert.accept()
-    except:
-        print('no alert')
+            play_button = self.driver.find_element(By.CLASS_NAME, play_button_class)
+            play_button.click()
 
-    play_button = driver.find_element(By.CLASS_NAME, PLAY_BUTTON_CLASS)
-    play_button.click()
+            time.sleep(lecture['during'])
+            self.driver.close()
+            self.driver.switch_to.window(self.driver.window_handles[0])
+            time.sleep(1)
 
-    time.sleep(lecture['during'])
-    driver.close()
-    driver.switch_to.window(driver.window_handles[0])
-    time.sleep(1)
-
-print('Completed auto play.')
-driver.quit()
+        print('Completed auto play.')
+        self.driver.quit()
