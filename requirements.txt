@@ -17,6 +17,9 @@ PyGetWindow==0.0.9
 PyMsgBox==1.0.9
 pyperclip==1.8.2
 pypreprocessor @ git+https://github.com/Epikem/pypreprocessor@2058f3a99cc635b9e18e8586541249d7d676050b
+PyQt5==5.15.9
+PyQt5-Qt5==5.15.2
+PyQt5-sip==12.11.1
 PyRect==0.2.0
 PyScreeze==0.1.28
 PySocks==1.7.1
