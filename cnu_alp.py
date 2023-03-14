@@ -7,8 +7,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchWindowException
 from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+
+WAIT_SECONDS = 3
 
 def set_chrome_driver() -> WebDriver:
     chrome_options = webdriver.ChromeOptions()
@@ -20,18 +24,61 @@ class ALP:
 
     def __init__(self) -> None:
         self.driver: WebDriver = set_chrome_driver()
-
-    def cnu_login(self, login_url:str, login_xpath:str, user_info:dict) -> None:
-        self.driver.implicitly_wait(3)
-        self.driver.get(login_url)
-        self.driver.find_element(By.NAME, 'UserID').send_keys(user_info['id'])
-        self.driver.find_element(By.NAME, 'UserPWD').send_keys(user_info['pw'])
-        self.driver.find_element(By.XPATH, login_xpath).click()
-
+    
     def get(self, url) -> None:
         self.driver.get(url)
 
+    def wait(self, wait:float=WAIT_SECONDS):
+        self.driver.implicitly_wait(wait)
+
+    def is_enabled(self):
+        print(self.driver.get_log('browser'))
+
+
+    def cnu_login(self, login_url:str, login_xpath:str, user_info:dict) -> None:
+        self.get(login_url)
+        self.wait()
+        self.driver.find_element(By.NAME, 'UserID').send_keys(user_info['id'])
+        self.driver.find_element(By.NAME, 'UserPWD').send_keys(user_info['pw'])
+        self.driver.find_element(By.XPATH, login_xpath).click()
+    
+    def cnu_self_login(self, login_url:str, portal_domain:str):
+        self.get(login_url)
+        self.wait()
+        while True:
+            try:
+                WebDriverWait(self.driver, 1).until(EC.alert_is_present())
+            except: # No alert
+                info = self.driver.execute_script("return document.querySelector('info')")
+                if info is None:
+                    self.driver.execute_script("""
+                    const info = document.createElement('info');
+                    const info_title = document.createElement('h4');
+                    const info_text = document.createElement('h1');
+                    info_title.textContent = 'CNU ALP와 함께합니다.';
+                    info_text.textContent = '로그인을 진행해주세요.';
+                    info.appendChild(info_title);
+                    info.appendChild(info_text);
+                    document.body.appendChild(info);
+                    info.style = `
+                        position: fixed;
+                        display: block;
+                        top: 32px;
+                        left: 32px;
+                        z-index: 1000;
+                        background: #FFFA;
+                        border-radius: 30px;
+                        padding: 15px;`
+                    """)
+                current_url = self.driver.current_url
+                if current_url == login_url:
+                    continue
+                if portal_domain in current_url:
+                    break
+        print('Login completed.')
+
     def get_classes(self, main_class:str=None) -> list[dict]:
+        self.wait()
         classes = []
         self.driver.execute_script("document.querySelectorAll('.new').forEach((e) => e.remove())")
         html = self.driver.page_source
