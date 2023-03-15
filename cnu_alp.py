@@ -13,6 +13,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 WAIT_SECONDS = 3
+TIME_DISPLAY_CLASS = 'vjs-remaining-time-display'
+PLAY_BUTTON_CLASS = 'video-js'
 
 def set_chrome_driver() -> WebDriver:
     chrome_options = webdriver.ChromeOptions()
@@ -77,7 +79,7 @@ class ALP:
                     break
         print('Login completed.')
 
-    def get_classes(self, main_class:str=None) -> list[dict]:
+    def get_classes(self) -> list[dict]:
         self.wait()
         classes = []
         self.driver.execute_script("document.querySelectorAll('.new').forEach((e) => e.remove())")
@@ -92,12 +94,11 @@ class ALP:
                 'class_name': tag_class_name,
                 'class_url' : tag['href']
             }
-            if main_class != None and main_class in tag_class_name:
-                return [dict_class]
             classes.append(dict_class)
         return classes
 
     def get_lectures(self) -> list[dict]:
+        self.wait()
         self.driver.execute_script("document.querySelector('.course_box_current').remove()")
         lectures = []
         html = self.driver.page_source
@@ -133,7 +134,7 @@ class ALP:
             })
         return lectures
 
-    def play(self, lectures, start_lecture_name, viewer_url, play_button_class, is_started=False):
+    def play(self, lectures, start_lecture_name, viewer_url, is_started=False):
         for lecture in lectures:
             if not is_started:
                 if start_lecture_name not in lecture['name']:
@@ -154,15 +155,31 @@ class ALP:
                 alert = self.driver.switch_to.alert
                 alert.accept()
             except:
-                print('no alert')
+                # print('no alert')
+                pass
 
-            play_button = self.driver.find_element(By.CLASS_NAME, play_button_class)
+            play_button = self.driver.find_element(By.CLASS_NAME, PLAY_BUTTON_CLASS)
             play_button.click()
 
-            time.sleep(lecture['during'])
+            time_display = self.driver.find_element(By.CLASS_NAME, PLAY_BUTTON_CLASS)
+
+            # time.sleep(lecture['during'])
+            while True:
+                # Check video ended
+                time.sleep(1)
+                p = re.compile('[0-9]{1,2}:[0-9]{2}')
+                p_find = p.findall(time_display.text)
+                if len(p_find) == 0:
+                    continue
+                remain_time = p.findall(time_display.text)[0]
+                print(remain_time)
+                if remain_time == '0:00':
+                    time.sleep(1)
+                    break
             self.driver.close()
             self.driver.switch_to.window(self.driver.window_handles[0])
             time.sleep(1)
-
-        print('Completed auto play.')
+        self.driver.back()
+    
+    def quit(self):
         self.driver.quit()
