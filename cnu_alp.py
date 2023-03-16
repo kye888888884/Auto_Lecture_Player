@@ -134,13 +134,8 @@ class ALP:
             })
         return lectures
 
-    def play(self, lectures, start_lecture_name, viewer_url, is_started=False):
+    def play(self, lectures, viewer_url):
         for lecture in lectures:
-            if not is_started:
-                if start_lecture_name not in lecture['name']:
-                    continue
-                else:
-                    is_started = True
             
             print('Play the \'%s\'.' % lecture['name'])
 

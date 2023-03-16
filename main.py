@@ -1,34 +1,6 @@
-import user
 from cnu_alp import ALP
-import time
-import re
 import gui
 import threading
-from bs4 import BeautifulSoup as bs
-from bs4 import element as bs_element
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from pypreprocessor import pypreprocessor
-
-### Preprocessing for test
-IS_TEST = False
-#if IS_TEST
-import test
-#endif
-
-### Default parameters
-DEFUALT_LECTURE_NAME = 'lecture_name'
-# Class name what you want to play automatically
-if IS_TEST:
-    user_info = test.login_info
-else:
-    user_info = user.login_info
-class_name = user.class_name
-start_lecture_name = user.start_lecture_name
 
 # URLs set proceding
 # If program is not working, check these.
@@ -56,11 +28,13 @@ def open_browser():
 def play_lectures():
     # Save information what lectures are selected
     main_window.getSelects()
-    # Resume ALP thread 
+    # Resume ALP thread
     event.set()
 
-def alp_start() -> list:
+def alp_start():
+    # Initialize list of classes
     classes.clear()
+
     alp = ALP()
     # self-login
     alp.cnu_self_login(LOGIN_URL, PORTAL_DOMAIN)
@@ -84,11 +58,7 @@ def alp_start() -> list:
         # Get lectures
         lectures = alp.get_lectures()
 
-        # Play lectures
-        is_started = False
-        if start_lecture_name in ' ' or start_lecture_name is DEFUALT_LECTURE_NAME:
-            is_started = True
-        alp.play(lectures, start_lecture_name, VIEWER_URL, is_started)
+        alp.play(lectures, VIEWER_URL)
     
     print("재생 완료")
     alp.quit()
