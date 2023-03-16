@@ -15,6 +15,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 WAIT_SECONDS = 3
 TIME_DISPLAY_CLASS = 'vjs-remaining-time-display'
 PLAY_BUTTON_CLASS = 'video-js'
+ALERT_CLASS = 'alert-max-move'
 
 def set_chrome_driver() -> WebDriver:
     chrome_options = webdriver.ChromeOptions()
@@ -35,7 +36,6 @@ class ALP:
 
     def is_enabled(self):
         print(self.driver.get_log('browser'))
-
 
     def cnu_login(self, login_url:str, login_xpath:str, user_info:dict) -> None:
         self.get(login_url)
@@ -134,6 +134,19 @@ class ALP:
             })
         return lectures
 
+    def check_completed(self):
+        self.driver.execute_script('''
+        const video = document.querySelector('video')
+        video.currentTime = video.duration;
+        ''')
+        # time.sleep(1)
+        try:
+            msg_danger = self.driver.find_element(By.CLASS_NAME, ALERT_CLASS)
+            return False
+        except:
+            # print('ALP Error: check_completed() is called in improper situation.')
+            return True
+
     def play(self, lectures, viewer_url):
         for lecture in lectures:
             
@@ -158,19 +171,20 @@ class ALP:
 
             time_display = self.driver.find_element(By.CLASS_NAME, PLAY_BUTTON_CLASS)
 
-            # time.sleep(lecture['during'])
-            while True:
-                # Check video ended
-                time.sleep(1)
-                p = re.compile('[0-9]{1,2}:[0-9]{2}')
-                p_find = p.findall(time_display.text)
-                if len(p_find) == 0:
-                    continue
-                remain_time = p.findall(time_display.text)[0]
-                print(remain_time)
-                if remain_time == '0:00':
+            time.sleep(5)
+            if not self.check_completed():
+                while True:
+                    # Check video ended
                     time.sleep(1)
-                    break
+                    p = re.compile('[0-9]{1,2}:[0-9]{2}')
+                    p_find = p.findall(time_display.text)
+                    if len(p_find) == 0:
+                        continue
+                    remain_time = p.findall(time_display.text)[0]
+                    # print(remain_time)
+                    if remain_time == '0:00':
+                        time.sleep(1)
+                        break
             self.driver.close()
             self.driver.switch_to.window(self.driver.window_handles[0])
             time.sleep(1)

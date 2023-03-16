@@ -53,7 +53,7 @@ class MainWindow(QWidget):
         # 윈도우 설정
         self.setLayout(self.layout)
         self.setWindowTitle('CNU Auto Lecture Player')
-        self.resize(800, 608)
+        self.resize(300, 608)
         self.show()
 
     def createClassTable(self, classes:list):
