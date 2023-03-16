@@ -12,12 +12,15 @@ VIEWER_URL = 'https://sel.jnu.ac.kr/mod/vod/viewer.php?id='
 # X-path of Elements for click
 LOGIN_XPATH = '/html/body/main/form/section/div[1]/div/div[1]/div[5]/button'
 
+# Private variables
 main_window: gui.MainWindow
+event = threading.Event()
 
+# Global variables
 classes:list[dict] = []
 selects:list[int] = []
+alp_container:list[ALP] = []
 
-event = threading.Event()
 
 def open_browser():
     # ALP thread start
@@ -36,6 +39,7 @@ def alp_start():
     classes.clear()
 
     alp = ALP()
+    alp_container.append(alp)
     # self-login
     alp.cnu_self_login(LOGIN_URL, PORTAL_DOMAIN)
     print(selects)
@@ -46,7 +50,7 @@ def alp_start():
         classes.append(c)
     print('획득')
     # Put information of classes to window's table
-    main_window.createClassTable(classes)
+    main_window.updateClassTable(classes)
     print(classes)
 
     # Auto play
@@ -72,30 +76,6 @@ main_window.setFunc('btn_play', play_lectures)
 
 gui.start(app)
 
-while True:
-    pass
-
-
-# Start
-# alp = ALP()
-
-# # Login with user data
-# alp.cnu_login(LOGIN_URL, LOGIN_XPATH, user_info)
-
-# # Enter the e-class homepage
-# alp.get(ECLASS_URL)
-
-# # Get Classes
-# classes = alp.get_classes(class_name)
-
-# # Enter the class what you want
-# alp.get(classes[0]['class_url'])
-
-# # Get lectures
-# lectures = alp.get_lectures()
-
-# # Play video
-# is_started = False
-# if start_lecture_name in ' ' or start_lecture_name is DEFUALT_LECTURE_NAME:
-#     is_started = True
-# alp.play(lectures, start_lecture_name, VIEWER_URL, PLAY_BUTTON_CLASS, is_started)
+# End of program
+alp_container[-1].quit()
+exit()
