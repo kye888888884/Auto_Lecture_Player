@@ -1,7 +1,5 @@
 import sys
-import PyQt5
-import threading
-from PyQt5.QtCore import Qt, QObject, pyqtSignal
+from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from random import random
@@ -12,6 +10,18 @@ class MainWindow(QWidget):
         self.labels = ('재생여부', '과목명')
         self.selects:list[int] = selects
         self.cboxes:list[QCheckBox] = []
+
+        self.msgs = {
+            'start': "'시작하기'를 눌러주세요.",
+            'opening': "브라우저를 여는 중입니다...",
+            'login': "로그인 해주세요.",
+            'login_error': "로그인에 실패했습니다. 다시 로그인 해주세요.",
+            'loading': "강의 목록을 불러오는 중입니다...",
+            'select': "자동재생을 원하는 강의를 선택하고, '자동재생 시작'을 눌러주세요.\n강의가 보이지 않으면 표의 아무 부분을 클릭해주세요.",
+            'playing': "자동재생 중입니다... 브라우저를 조작하지 말아주세요.",
+            'browser_error': "브라우저가 비정상적으로 종료되었습니다. 다시 실행하려면 '시작하기'를 눌러주세요.",
+            'complete': "재생이 완료되었습니다. 다시 실행하려면 '시작하기'를 눌러주세요.",
+        }
 
         self.is_loaded = False
         self.table_rows = 11
@@ -27,19 +37,22 @@ class MainWindow(QWidget):
 
         self.createClassTable()
 
-        self.btn = QPushButton('시작하기', self)
-        self.btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.btn.move(20, 20)
+        self.btn_start = QPushButton('시작하기', self)
+        self.btn_start.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.btn_start.move(20, 20)
 
         self.btn_play = QPushButton('자동재생 시작', self)
         self.btn_play.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.btn_play.move(80, 20)
+        self.btn_play.setEnabled(False)
 
         self.lo = QHBoxLayout()
-        self.lo.addWidget(self.btn)
+        self.lo.addWidget(self.btn_start)
         self.lo.addWidget(self.btn_play)
 
-        self.status_lbl = QLabel("<h4>'시작하기'를 눌러주세요.</h4>", self)
+        self.status_lbl = QLabel(self)
+        self.status_lbl.setWordWrap(True)
+        self.setStatus('start')
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.title_lbl)
@@ -50,7 +63,7 @@ class MainWindow(QWidget):
         # 윈도우 설정
         self.setLayout(self.layout)
         self.setWindowTitle('CNU Auto Lecture Player')
-        self.resize(300, 580)
+        self.resize(300, 600)
         self.show()
 
     def resizeEvent(self, a0: QtGui.QResizeEvent) -> None:
@@ -58,7 +71,7 @@ class MainWindow(QWidget):
         self.table.setColumnWidth(1, int((self.table.width()-80-2)))
         return super().resizeEvent(a0)
 
-    def createClassTable(self):
+    def createClassTable(self) -> None:
         self.table = QTableWidget()
         self.table.move(20, 80)
         self.table.setRowCount(self.table_rows)
@@ -79,6 +92,7 @@ class MainWindow(QWidget):
 
         self.table.verticalHeader().setVisible(False)
         self.table.setMaximumHeight(439)
+        self.table.update()
     
     def centerWidget(self, content) -> QWidget:
         cellWidget = QWidget()
@@ -89,11 +103,13 @@ class MainWindow(QWidget):
         cellWidget.setLayout(layoutCB)
         return cellWidget
 
-    def cbAllClicked(self, checked):
+    def cbAllClicked(self, checked) -> None:
         for cb in self.cboxes:
+            if not cb.isEnabled():
+                continue
             cb.setChecked(checked)
 
-    def updateClassTable(self, classes:list):
+    def updateClassTable(self, classes:list) -> None:
         for r in range(self.lecture_num):
             self.cboxes[r].setDisabled(True)
         for r in range(len(classes)):
@@ -101,8 +117,12 @@ class MainWindow(QWidget):
             self.cboxes[r].setDisabled(False)
         # self.table.show()
         self.is_loaded = True
+        self.setButtonEnable(btn2=True)
+
+    def setStatus(self, key:str) -> None:
+        self.status_lbl.setText('<h4>'+self.msgs[key]+'</h4>')
     
-    def getSelects(self):
+    def getSelects(self) -> None:
         self.selects.clear()
         for idx, cbox in enumerate(self.cboxes):
             if not cbox.isEnabled():
@@ -110,10 +130,17 @@ class MainWindow(QWidget):
             if cbox.isChecked():
                 self.selects.append(idx)
 
-    def setFunc(self, type: str, func: callable):
+    def setButtonEnable(self, btn1:int|bool=-1, btn2:int|bool=-1) -> None:
+        if btn1 != -1:
+            self.btn_start.setEnabled(btn1)
+        if btn2 != -1:
+            self.btn_play.setEnabled(btn2)
+        # print(btn1, btn2)
+
+    def setFunc(self, type: str, func: callable) -> None:
         match type:
             case 'btn_start':
-                self.btn.clicked.connect(func)
+                self.btn_start.clicked.connect(func)
             case 'btn_play':
                 self.btn_play.clicked.connect(func)
 

@@ -1,5 +1,9 @@
 import time
 import re
+import socket
+import http.client
+from gui import MainWindow
+from threading import Event
 from bs4 import BeautifulSoup as bs
 from bs4 import element as bs_element
 from selenium import webdriver
@@ -7,9 +11,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchWindowException
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.remote.command import Command
 from webdriver_manager.chrome import ChromeDriverManager
 
 WAIT_SECONDS = 3
@@ -44,16 +48,19 @@ class ALP:
         self.driver.find_element(By.NAME, 'UserPWD').send_keys(user_info['pw'])
         self.driver.find_element(By.XPATH, login_xpath).click()
     
-    def cnu_self_login(self, login_url:str, portal_domain:str):
+    def cnu_self_login(self, login_url:str, portal_domain:str, event_login_completed:Event, window:MainWindow):
         self.get(login_url)
         self.wait()
+        event_login_completed.set()
         while True:
             try:
-                WebDriverWait(self.driver, 1).until(EC.alert_is_present())
+                WebDriverWait(self.driver, 0.5).until(EC.alert_is_present())
+                window.setStatus('login_error')
             except: # No alert
-                info = self.driver.execute_script("return document.querySelector('info')")
-                if info is None:
-                    self.driver.execute_script("""
+                # info = self.driver.execute_script("return document.querySelector('info')")
+                # if info is None:
+                self.driver.execute_script("""
+                if (!document.querySelector('info')) {
                     const info = document.createElement('info');
                     const info_title = document.createElement('h4');
                     const info_text = document.createElement('h1');
@@ -71,7 +78,7 @@ class ALP:
                         background: #FFFA;
                         border-radius: 30px;
                         padding: 15px;`
-                    """)
+                }""")
                 current_url = self.driver.current_url
                 if current_url == login_url:
                     continue
@@ -190,5 +197,12 @@ class ALP:
             time.sleep(1)
         self.driver.back()
     
+    def is_alive(self) -> bool:
+        try:
+            self.driver.execute(Command.GET_WINDOW_RECT)
+            return True
+        except (socket.error, http.client.CannotSendRequest):
+            return False
+
     def quit(self):
         self.driver.quit()
