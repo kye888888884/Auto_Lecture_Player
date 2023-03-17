@@ -134,4 +134,4 @@ gui.start(app)
 time.sleep(1)
 if is_alp_on[0]:
     alp_container[-1].quit()
-exit()
+# exit()
