@@ -3,6 +3,7 @@ __pycache__/
 private/
 build/
 dist/
+driver/
 
 test.py
 *.spec

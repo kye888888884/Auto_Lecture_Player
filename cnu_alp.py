@@ -2,6 +2,8 @@ import time
 import re
 import socket
 import http.client
+import os
+import sys
 from gui import MainWindow
 from threading import Event
 from bs4 import BeautifulSoup as bs
@@ -52,8 +54,12 @@ class Script:
 def set_chrome_driver() -> WebDriver:
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    return driver
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        chromedriver_path = os.path.join(sys._MEIPASS, "driver/chromedriver.exe")
+        return webdriver.Chrome(chromedriver_path, options=chrome_options)
+    else:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        return driver
 
 class ALP:
 
