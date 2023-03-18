@@ -21,6 +21,34 @@ TIME_DISPLAY_CLASS = 'vjs-remaining-time-display'
 PLAY_BUTTON_CLASS = 'video-js'
 ALERT_CLASS = 'alert-max-move'
 
+class Script:
+    INFO_LOGIN = """
+        if (!document.querySelector('info')) {
+            const info = document.createElement('info');
+            const info_title = document.createElement('h4');
+            const info_text = document.createElement('h1');
+            info_title.textContent = 'CNU ALP와 함께합니다.';
+            info_text.textContent = '로그인을 진행해주세요.';
+            info.appendChild(info_title);
+            info.appendChild(info_text);
+            document.body.appendChild(info);
+            info.style = `
+                position: fixed;
+                display: block;
+                top: 32px;
+                left: 32px;
+                z-index: 1000;
+                background: #FFFA;
+                border-radius: 30px;
+                padding: 15px;`
+        }"""
+    GET_CLASSES = "document.querySelectorAll('.new').forEach((e) => e.remove())"
+    CHECK_COMPLETED = """
+        const video = document.querySelector('video')
+        video.currentTime = video.duration;
+        """
+    REMOVE_NEW_BOX = "document.querySelector('.course_box_current').remove()"
+
 def set_chrome_driver() -> WebDriver:
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
@@ -40,13 +68,6 @@ class ALP:
 
     def is_enabled(self):
         print(self.driver.get_log('browser'))
-
-    def cnu_login(self, login_url:str, login_xpath:str, user_info:dict) -> None:
-        self.get(login_url)
-        self.wait()
-        self.driver.find_element(By.NAME, 'UserID').send_keys(user_info['id'])
-        self.driver.find_element(By.NAME, 'UserPWD').send_keys(user_info['pw'])
-        self.driver.find_element(By.XPATH, login_xpath).click()
     
     def cnu_self_login(self, login_url:str, portal_domain:str, event_login_completed:Event, window:MainWindow):
         self.get(login_url)
@@ -59,37 +80,18 @@ class ALP:
             except: # No alert
                 # info = self.driver.execute_script("return document.querySelector('info')")
                 # if info is None:
-                self.driver.execute_script("""
-                if (!document.querySelector('info')) {
-                    const info = document.createElement('info');
-                    const info_title = document.createElement('h4');
-                    const info_text = document.createElement('h1');
-                    info_title.textContent = 'CNU ALP와 함께합니다.';
-                    info_text.textContent = '로그인을 진행해주세요.';
-                    info.appendChild(info_title);
-                    info.appendChild(info_text);
-                    document.body.appendChild(info);
-                    info.style = `
-                        position: fixed;
-                        display: block;
-                        top: 32px;
-                        left: 32px;
-                        z-index: 1000;
-                        background: #FFFA;
-                        border-radius: 30px;
-                        padding: 15px;`
-                }""")
+                self.driver.execute_script(Script.INFO_LOGIN)
                 current_url = self.driver.current_url
                 if current_url == login_url:
                     continue
                 if portal_domain in current_url:
                     break
-        print('Login completed.')
+        # print('Login completed.')
 
     def get_classes(self) -> list[dict]:
         self.wait()
         classes = []
-        self.driver.execute_script("document.querySelectorAll('.new').forEach((e) => e.remove())")
+        self.driver.execute_script(Script.GET_CLASSES)
         html = self.driver.page_source
         soup7 = bs(html, 'html.parser')
         tags = soup7.findAll('a', class_='course_link')
@@ -106,7 +108,7 @@ class ALP:
 
     def get_lectures(self) -> list[dict]:
         self.wait()
-        self.driver.execute_script("document.querySelector('.course_box_current').remove()")
+        self.driver.execute_script(Script.REMOVE_NEW_BOX)
         lectures = []
         html = self.driver.page_source
         soup7 = bs(html, 'html.parser')
@@ -142,10 +144,7 @@ class ALP:
         return lectures
 
     def check_completed(self):
-        self.driver.execute_script('''
-        const video = document.querySelector('video')
-        video.currentTime = video.duration;
-        ''')
+        self.driver.execute_script(Script.CHECK_COMPLETED)
         # time.sleep(1)
         try:
             msg_danger = self.driver.find_element(By.CLASS_NAME, ALERT_CLASS)

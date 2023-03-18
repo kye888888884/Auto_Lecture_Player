@@ -2,7 +2,6 @@ import sys
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
-from random import random
 
 class MainWindow(QWidget):
     def __init__(self, selects:list):
