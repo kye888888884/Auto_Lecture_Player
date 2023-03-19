@@ -93,6 +93,16 @@ class MainWindow(QWidget):
         self.table.setMaximumHeight(439)
         self.table.update()
     
+    def updateClassTable(self, classes:list) -> None:
+        for r in range(self.lecture_num):
+            self.cboxes[r].setDisabled(True)
+        for r in range(len(classes)):
+            self.table.setItem(r + 1, 1, QTableWidgetItem(classes[r]['class_name']))
+            self.cboxes[r].setDisabled(False)
+        # self.table.show()
+        self.is_loaded = True
+        self.setButtonEnable(btn2=True)
+
     def centerWidget(self, content) -> QWidget:
         cellWidget = QWidget()
         layoutCB = QHBoxLayout(cellWidget)
@@ -107,16 +117,6 @@ class MainWindow(QWidget):
             if not cb.isEnabled():
                 continue
             cb.setChecked(checked)
-
-    def updateClassTable(self, classes:list) -> None:
-        for r in range(self.lecture_num):
-            self.cboxes[r].setDisabled(True)
-        for r in range(len(classes)):
-            self.table.setItem(r + 1, 1, QTableWidgetItem(classes[r]['class_name']))
-            self.cboxes[r].setDisabled(False)
-        # self.table.show()
-        self.is_loaded = True
-        self.setButtonEnable(btn2=True)
 
     def setStatus(self, key:str) -> None:
         self.status_lbl.setText('<h4>'+self.msgs[key]+'</h4>')
@@ -142,7 +142,6 @@ class MainWindow(QWidget):
                 self.btn_start.clicked.connect(func)
             case 'btn_play':
                 self.btn_play.clicked.connect(func)
-
 
 def init() -> QApplication:
     app = QApplication(sys.argv)

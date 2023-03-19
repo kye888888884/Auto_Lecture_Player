@@ -43,8 +43,8 @@ def open_browser():
     main_window.setStatus('opening')
 
     start_thread(alp_start)
-    start_thread(alp_check)
-    start_thread(alp_timeout)
+    # start_thread(alp_check)
+    # start_thread(alp_timeout)
 
 def play_lectures():
     # Save information what lectures are selected
@@ -117,8 +117,7 @@ def alp_check():
 
 def alp_timeout():
     time.sleep(ALP_TIMEOUT)
-    print('yeah')
-    print(events[1].is_set())
+    print('ALP_TIMEOUT: ' + str(events[1].is_set()))
     if not events[1].is_set():
         events[1].set()
 
