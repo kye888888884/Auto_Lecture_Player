@@ -1,5 +1,6 @@
 from cnu_alp import ALP
 import gui
+from gui import Msg
 import threading
 import time
 
@@ -40,11 +41,11 @@ def open_browser():
     events[1] = threading.Event()
 
     main_window.setButtonEnable(btn1=False)
-    main_window.setStatus('opening')
+    main_window.setStatus(Msg.OPENING)
 
     start_thread(alp_start)
-    # start_thread(alp_check)
-    # start_thread(alp_timeout)
+    start_thread(alp_check)
+    start_thread(alp_timeout)
 
 def play_lectures():
     # Save information what lectures are selected
@@ -61,13 +62,15 @@ def alp_start():
     alp = ALP()
     alp_container.append(alp)
 
-    main_window.setStatus('login')
+    main_window.setStatus(Msg.LOGIN)
     # self-login
-    alp.cnu_self_login(LOGIN_URL, PORTAL_DOMAIN, events[1], main_window)
-    # print(selects)
+    login = alp.cnu_self_login(LOGIN_URL, PORTAL_DOMAIN, events[1], main_window)
+    if not login:
+        events[1].set()
+        return
 
     # Enter the e-class homepage
-    main_window.setStatus('loading')
+    main_window.setStatus(Msg.LOADING)
     alp.get(ECLASS_URL)
 
     # Get lectures
@@ -80,9 +83,9 @@ def alp_start():
     # print(classes)
 
     # Auto play
-    main_window.setStatus('select')
+    main_window.setStatus(Msg.SELECT)
     events[0].wait()
-    main_window.setStatus('playing')
+    main_window.setStatus(Msg.PLAY)
     for idx in selects:
         # Goto class
         alp.get(classes[idx]['class_url'])
@@ -96,28 +99,26 @@ def alp_start():
     print("재생 완료")
     alp.quit()
     is_alp_on[0] = False
-    main_window.setStatus('complete')
+    main_window.setStatus(Msg.COMPLETE)
 
 def alp_check():
     events[1].wait()
-    try:
-        while True:
-            is_alive: bool = alp_container[0].is_alive()
-            if not is_alive:
-                break
-            time.sleep(2)
-            # print(is_alive)
-    except:
-        if is_alp_on[0]:
-            print("ALP is off.")
-            is_alp_on[0] = False
+
+    while True:
+        is_alive: bool = alp_container[0].is_alive()
+        if not is_alive:
+            if is_alp_on[0]:
+                is_alp_on[0] = False
+            print("[t_check] ALP is off.")
             alp_container.clear()
             main_window.setButtonEnable(btn1=True, btn2=False)
-            main_window.setStatus('browser_error')
+            main_window.setStatus(Msg.BROWSER_ERROR)
+            break
+        time.sleep(1)
 
 def alp_timeout():
     time.sleep(ALP_TIMEOUT)
-    print('ALP_TIMEOUT: ' + str(events[1].is_set()))
+    print('[t_timeout] ALP_TIMEOUT: ' + str(events[1].is_set()))
     if not events[1].is_set():
         events[1].set()
 

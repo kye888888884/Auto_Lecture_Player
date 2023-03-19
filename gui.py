@@ -3,24 +3,23 @@ from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 
+class Msg:
+    START = "'시작하기'를 눌러주세요."
+    OPENING = "브라우저를 여는 중입니다..."
+    LOGIN = "로그인 해주세요."
+    LOGIN_FAILED = "로그인에 실패했습니다. 다시 로그인 해주세요."
+    LOADING = "강의 목록을 불러오는 중입니다..."
+    SELECT = "자동재생을 원하는 강의를 선택하고, '자동재생 시작'을 눌러주세요\n강의가 보이지 않으면 표의 아무 부분을 클릭해주세요."
+    PLAY = "자동재생 중입니다... 브라우저를 조작하지 말아주세요."
+    BROWSER_ERROR = "브라우저가 비정상적으로 종료되었습니다. 다시 실행하려면'시작하기'를 눌러주세요."
+    COMPLETE = "재생이 완료되었습니다. 다시 실행하려면 '시작하기'를 눌러주세요."
+
 class MainWindow(QWidget):
     def __init__(self, selects:list):
         super().__init__()
         self.labels = ('재생여부', '과목명')
         self.selects:list[int] = selects
         self.cboxes:list[QCheckBox] = []
-
-        self.msgs = {
-            'start': "'시작하기'를 눌러주세요.",
-            'opening': "브라우저를 여는 중입니다...",
-            'login': "로그인 해주세요.",
-            'login_error': "로그인에 실패했습니다. 다시 로그인 해주세요.",
-            'loading': "강의 목록을 불러오는 중입니다...",
-            'select': "자동재생을 원하는 강의를 선택하고, '자동재생 시작'을 눌러주세요.\n강의가 보이지 않으면 표의 아무 부분을 클릭해주세요.",
-            'playing': "자동재생 중입니다... 브라우저를 조작하지 말아주세요.",
-            'browser_error': "브라우저가 비정상적으로 종료되었습니다. 다시 실행하려면 '시작하기'를 눌러주세요.",
-            'complete': "재생이 완료되었습니다. 다시 실행하려면 '시작하기'를 눌러주세요.",
-        }
 
         self.is_loaded = False
         self.table_rows = 11
@@ -51,7 +50,7 @@ class MainWindow(QWidget):
 
         self.status_lbl = QLabel(self)
         self.status_lbl.setWordWrap(True)
-        self.setStatus('start')
+        self.setStatus(Msg.START)
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.title_lbl)
@@ -93,7 +92,13 @@ class MainWindow(QWidget):
         self.table.setMaximumHeight(439)
         self.table.update()
     
+    def clearClassTable(self) -> None:
+        for r in range(self.table_rows):
+            self.cboxes[r].setDisabled(True)
+            self.table.setItem(r + 1, 1, QTableWidgetItem(''))
+
     def updateClassTable(self, classes:list) -> None:
+        self.clearClassTable()
         for r in range(self.lecture_num):
             self.cboxes[r].setDisabled(True)
         for r in range(len(classes)):
@@ -118,8 +123,8 @@ class MainWindow(QWidget):
                 continue
             cb.setChecked(checked)
 
-    def setStatus(self, key:str) -> None:
-        self.status_lbl.setText('<h4>'+self.msgs[key]+'</h4>')
+    def setStatus(self, msg:str) -> None:
+        self.status_lbl.setText('<h4>'+msg+'</h4>')
     
     def getSelects(self) -> None:
         self.selects.clear()

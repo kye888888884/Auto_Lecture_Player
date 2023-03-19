@@ -1,10 +1,8 @@
 import time
 import re
-import socket
-import http.client
 import os
 import sys
-from gui import MainWindow
+from gui import MainWindow, Msg
 from threading import Event
 from bs4 import BeautifulSoup as bs
 from bs4 import element as bs_element
@@ -62,6 +60,11 @@ def set_chrome_driver() -> WebDriver:
         return driver
 
 class ALP:
+    """
+    ### ALP (Auto Lecture Player)
+    This is browser controller for playing automatically lectures.
+    When instantiated this, ALP has chrome driver.
+    """
 
     def __init__(self) -> None:
         self.driver: WebDriver = set_chrome_driver()
@@ -75,27 +78,31 @@ class ALP:
     def is_enabled(self):
         print(self.driver.get_log('browser'))
     
-    def cnu_self_login(self, login_url:str, portal_domain:str, event_login_completed:Event, window:MainWindow):
-        self.get(login_url)
-        self.wait()
-        event_login_completed.set()
-        while True:
-            time.sleep(1)
-            self.driver.implicitly_wait(3)
-            try:
-                alert = self.driver.switch_to.alert
-                # print(alert)
-                print("경고창 있음")
-            except:
-                print("경고창 없음")
-                self.driver.execute_script(Script.INFO_LOGIN)
-                current_url = self.driver.current_url
-                if current_url == login_url:
-                    continue
-                if portal_domain in current_url:
-                    break
+    def cnu_self_login(self, login_url:str, portal_domain:str, event_login_completed:Event, window:MainWindow) -> bool:
+        self.get(login_url) # Go to login page
+        self.wait() # Wait to load page
+        event_login_completed.set() # Set the timeout thread
+
+        while True: # Loop until login is completed
+            time.sleep(1) # Prevent overloading
+            self.wait() # Wait to reload login page
+
+            if not self.is_alive(): # ALP is off
+                return False # Finish this thread
+            
+            if self.is_alert_exists(): # Login Failed
+                window.setStatus(Msg.LOGIN_FAILED) # Set gui status to login_failed
+                continue # Skip below part
+
+            self.driver.execute_script(Script.INFO_LOGIN) # Create information message
+            current_url = self.driver.current_url
+            if current_url == login_url: # Check currnet page is login
+                continue # Skip below part
+            if portal_domain in current_url: # Check login is completed
+                break
                     
-        print('Login completed.')
+        print('[t_start] Login completed.')
+        return True
 
     def get_classes(self) -> list[dict]:
         self.wait()
@@ -206,27 +213,22 @@ class ALP:
             self.driver.switch_to.window(self.driver.window_handles[0])
             time.sleep(1)
         self.driver.back()
+
+    def is_alert_exists(self) -> bool:
+        try:
+            alert = self.driver.switch_to.alert
+            return True
+        except:
+            return False
     
     def is_alive(self) -> bool:
-        log = self.driver.get_log('driver')
-        issue = self.driver.get_issue_message()
-        print(log)
-        print(issue)
-        if 'message' in log:
-            if 'no such window' in log['message']:
-                print('브라우저 꺼짐')
-                return True
-        print('브라우저 살아있음')
-        return True
-        # try:
-        #     self.driver.execute(Command.W3C_GET_ALERT_TEXT)
-        #     return True
-        # except (socket.error, http.client.CannotSendRequest):
-        #     try:
-        #         self.driver.execute(Command.GET_CURRENT_URL)
-        #         return True
-        #     except:
-        #         return False
+        if self.is_alert_exists():
+            return True
+        try: 
+            url = self.driver.current_url
+            return True
+        except:
+            return False
 
     def quit(self):
         self.driver.quit()
