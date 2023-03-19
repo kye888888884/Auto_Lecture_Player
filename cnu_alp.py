@@ -80,19 +80,22 @@ class ALP:
         self.wait()
         event_login_completed.set()
         while True:
+            time.sleep(1)
+            self.driver.implicitly_wait(3)
             try:
-                WebDriverWait(self.driver, 0.5).until(EC.alert_is_present())
-                window.setStatus('login_error')
-            except: # No alert
-                # info = self.driver.execute_script("return document.querySelector('info')")
-                # if info is None:
+                alert = self.driver.switch_to.alert
+                # print(alert)
+                print("경고창 있음")
+            except:
+                print("경고창 없음")
                 self.driver.execute_script(Script.INFO_LOGIN)
                 current_url = self.driver.current_url
                 if current_url == login_url:
                     continue
                 if portal_domain in current_url:
                     break
-        # print('Login completed.')
+                    
+        print('Login completed.')
 
     def get_classes(self) -> list[dict]:
         self.wait()
@@ -184,6 +187,7 @@ class ALP:
             time_display = self.driver.find_element(By.CLASS_NAME, PLAY_BUTTON_CLASS)
 
             time.sleep(5)
+
             if not self.check_completed():
                 while True:
                     # Check video ended
@@ -197,17 +201,32 @@ class ALP:
                     if remain_time == '0:00':
                         time.sleep(1)
                         break
+            
             self.driver.close()
             self.driver.switch_to.window(self.driver.window_handles[0])
             time.sleep(1)
         self.driver.back()
     
     def is_alive(self) -> bool:
-        try:
-            self.driver.execute(Command.GET_WINDOW_RECT)
-            return True
-        except (socket.error, http.client.CannotSendRequest):
-            return False
+        log = self.driver.get_log('driver')
+        issue = self.driver.get_issue_message()
+        print(log)
+        print(issue)
+        if 'message' in log:
+            if 'no such window' in log['message']:
+                print('브라우저 꺼짐')
+                return True
+        print('브라우저 살아있음')
+        return True
+        # try:
+        #     self.driver.execute(Command.W3C_GET_ALERT_TEXT)
+        #     return True
+        # except (socket.error, http.client.CannotSendRequest):
+        #     try:
+        #         self.driver.execute(Command.GET_CURRENT_URL)
+        #         return True
+        #     except:
+        #         return False
 
     def quit(self):
         self.driver.quit()
