@@ -14,18 +14,21 @@ VIEWER_URL = 'https://sel.jnu.ac.kr/mod/vod/viewer.php?id='
 # X-path of Elements for click
 LOGIN_XPATH = '/html/body/main/form/section/div[1]/div/div[1]/div[5]/button'
 
-# Other const
-ALP_TIMEOUT = 10
+# Timeout to close browser when if browser is not responding in ALP_TIMEOUT
+# Browser will not be responding in some situations.
+# 1. Network unstable or absent.
+# 2. Error in downloading chrome driver.
+# 3. User immediately close browser as soon as the browser is turned on.
+ALP_TIMEOUT = 15
 
 # Private variables
 main_window: gui.MainWindow
 
-# Global variables
+# Global variables to be accessed by any thread.
 classes:list[dict] = []
 selects:list[int] = []
-alp_container:list[ALP] = []
-is_alp_on:list = [False]
-
+is_alp_on = False
+alp: ALP = None
 events: list[threading.Event] = [False, False]
 # [0]: wait to play
 # [1]: wait to load in login page
@@ -55,12 +58,12 @@ def play_lectures():
     main_window.setButtonEnable(btn2=False)
 
 def alp_start():
+    global is_alp_on, alp, classes
     # Initialize list of classes
     classes.clear()
 
-    is_alp_on[0] = True
+    is_alp_on = True
     alp = ALP()
-    alp_container.append(alp)
 
     main_window.setStatus(Msg.LOGIN)
     # self-login
@@ -74,9 +77,9 @@ def alp_start():
     alp.get(ECLASS_URL)
 
     # Get lectures
-    for c in alp.get_classes():
-        classes.append(c)
-    # print('획득')
+    # for c in alp.get_classes():
+    #     classes.append(c)
+    classes = alp.get_classes().copy()
 
     # Put information of classes to window's table
     main_window.updateClassTable(classes)
@@ -96,23 +99,24 @@ def alp_start():
         alp.play(lectures, VIEWER_URL)
     
     main_window.setButtonEnable(btn1=True, btn2=False)
-    print("재생 완료")
+    print("ALP completed.")
     alp.quit()
-    is_alp_on[0] = False
+    is_alp_on = False
     main_window.setStatus(Msg.COMPLETE)
 
 def alp_check():
+    global is_alp_on
     events[1].wait()
 
     while True:
-        if len(alp_container) == 0:
+        if alp == None:
             break
-        is_alive: bool = alp_container[0].is_alive()
+        is_alive: bool = alp.is_alive()
         if not is_alive:
-            if is_alp_on[0]:
-                is_alp_on[0] = False
+            if is_alp_on:
+                is_alp_on = False
             print("[t_check] ALP is off.")
-            alp_container.clear()
+            alp = None
             main_window.setButtonEnable(btn1=True, btn2=False)
             main_window.setStatus(Msg.BROWSER_ERROR)
             break
@@ -134,6 +138,6 @@ gui.start(app)
 
 # End of program
 time.sleep(1)
-if is_alp_on[0]:
-    alp_container[-1].quit()
+if is_alp_on:
+    alp.quit()
 # exit()
