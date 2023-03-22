@@ -105,6 +105,8 @@ def alp_check():
     events[1].wait()
 
     while True:
+        if len(alp_container) == 0:
+            break
         is_alive: bool = alp_container[0].is_alive()
         if not is_alive:
             if is_alp_on[0]:

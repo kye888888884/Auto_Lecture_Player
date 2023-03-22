@@ -93,9 +93,10 @@ class MainWindow(QWidget):
         self.table.update()
     
     def clearClassTable(self) -> None:
+        for cb in self.cboxes:
+            cb.setDisabled(True)
         for r in range(self.table_rows):
-            self.cboxes[r].setDisabled(True)
-            self.table.setItem(r + 1, 1, QTableWidgetItem(''))
+            self.table.setItem(r, 1, QTableWidgetItem(''))
 
     def updateClassTable(self, classes:list) -> None:
         self.clearClassTable()

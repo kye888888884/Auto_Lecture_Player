@@ -48,6 +48,7 @@ class Script:
         video.currentTime = video.duration;
         """
     REMOVE_NEW_BOX = "document.querySelector('.course_box_current').remove()"
+    IS_VIDEO_PLAYING = "return !document.querySelector('video').paused"
 
 def set_chrome_driver() -> WebDriver:
     chrome_options = webdriver.ChromeOptions()
@@ -77,7 +78,7 @@ class ALP:
 
     def is_enabled(self):
         print(self.driver.get_log('browser'))
-    
+
     def cnu_self_login(self, login_url:str, portal_domain:str, event_login_completed:Event, window:MainWindow) -> bool:
         self.get(login_url) # Go to login page
         self.wait() # Wait to load page
@@ -192,8 +193,11 @@ class ALP:
             play_button.click()
 
             time_display = self.driver.find_element(By.CLASS_NAME, PLAY_BUTTON_CLASS)
-
-            time.sleep(5)
+            
+            _check = True
+            while _check:
+                time.sleep(0.5)
+                _check = not self.is_video_playing()
 
             if not self.check_completed():
                 while True:
@@ -206,13 +210,18 @@ class ALP:
                     remain_time = p.findall(time_display.text)[0]
                     # print(remain_time)
                     if remain_time == '0:00':
-                        time.sleep(1)
                         break
             
             self.driver.close()
             self.driver.switch_to.window(self.driver.window_handles[0])
-            time.sleep(1)
         self.driver.back()
+
+    def is_video_playing(self) -> bool:
+        try:
+            result = self.driver.execute_script(Script.IS_VIDEO_PLAYING)
+            return result
+        except:
+            return False
 
     def is_alert_exists(self) -> bool:
         try:
